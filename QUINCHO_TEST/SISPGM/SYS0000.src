@@ -1,0 +1,632 @@
+REM "[SYS0000] MENU PRINCIPAL DEL SISTEMA
+REM "MundoBBx
+BEGIN 
+escoff; setopts $08$
+print 'hide'
+if (info(3,6)="5") then BUI=1 else BUI=0
+gosub pantalla
+rem
+rem
+rem "define Callbacks para opciones de menu
+rem "======================================
+declare BBjControl  control!
+controles! = window!.getAllControls()
+rem
+for j=1 to controles!.size()-1
+    control! = cast(BBjControl,controles!.getItem(j))
+    if control!.getControlType() = sysgui!.MENUITEM_CONTROL then
+        CALLBACK(ON_MENU_ITEM_SELECT,opciones,sysgui!.getContext(),control!.getID())
+    endif
+next j
+rem
+rem
+rem "registra callback de la ventana
+rem "===============================
+salir!.setCallback(salir!.ON_TOOL_BUTTON_PUSH,"salida")
+CALLBACK(ON_KEYPRESS,tecla,sysgui!.getContext())
+CALLBACK(ON_CLOSE,salida,sysgui!.getContext())
+rem
+rem
+rem "procesamiento de eventos
+rem "========================
+PROCESS_EVENTS
+rem
+rem
+rem "salida del programa
+rem "===================
+salida:
+RR=MSGBOX("Desea salir de la Aplicacion",4+32+256,"Salir")
+IF RR<>6 THEN RETURN
+window!.destroy(err=*next)
+if bui then call "./BUIPGM/CSS_REFRESH.src","elquincho","C:/USR/QUINCHO/BUIPGM/elquincho.css"
+if tcb(13) then
+    stop
+else
+    release
+endif
+return
+rem
+rem "valida tecla pulsada
+rem "====================
+tecla:
+declare BBjKeypressEvent eventotecla!
+eventotecla!=cast(BBjKeypressEvent,miAPI!.getLastEvent())
+codigotecla=eventotecla!.getKeyCode()
+tecla1:
+if codigotecla=331 then
+    rem "controla F1
+    url$="file:///"+dsk("")+dir("")+"IMAGES/DOCHTM/EQHTML/SYS0000.htm"
+    call "GHTML.src",url$,"Ayuda general EL Quincho",sysgui!,sale
+endif
+if codigotecla=333 then
+    rem "controla F3
+endif
+return
+rem
+
+rem
+rem "opciones
+rem "========
+opciones:
+declare BBjMenuItemSelectEvent  evento!
+declare BBjControl              controlmenu!
+evento! = cast(BBjMenuItemSelectEvent,miAPI!.getLastEvent())
+controlmenu! = evento!.getControl()
+id_menu      = controlmenu!.getID()
+nombre_menu$ = controlmenu!.getName()
+codigo=id_menu*-1
+if codigo=800 then goto salida
+seccion=int(codigo/1000)
+opcion=int(codigo-(1000*seccion))
+switch seccion
+    case 1
+        pgms$[all]=pgm01$[all]; break
+    case 2
+        pgms$[all]=pgm02$[all]; break
+    case 3
+        pgms$[all]=pgm03$[all]; break
+    case 4
+        pgms$[all]=pgm04$[all]; break
+    case 5
+        pgms$[all]=pgm05$[all]; break
+    case 6
+        pgms$[all]=pgm06$[all]; break
+    case 7
+        pgms$[all]=pgm07$[all]; break
+    case 8
+        pgms$[all]=pgm08$[all]; break
+swend
+rem
+posi=pos("-"=pgms$[opcion])
+if posi then
+    ordenpgm=num(pgms$[opcion](posi+1))
+    programa$=pgms$[opcion](1,posi-1)
+    rem
+    rem "aplica GVALIDA
+    rem "--------------
+    CALL "GVALIDA",sistema,seccion,ordenpgm,sw; IF SW=9 THEN GOSUB L9000; return
+else
+    programa$=pgms$[opcion]
+endif
+rem
+if programa$="salida" then goto salida
+if programa$="Ayuda" then codigotecla=331; gosub tecla1; return
+if programa$="xxxxxx" then
+    resp=msgbox("La opcion escogida no se encuentra disponible o no esta habilitada",0+48+0,"Opcion no disponible")
+    return
+endif
+pgmdis=unt
+pgm1$=programa$
+open (pgmdis,err=noexiste)pgm1$
+if pgmdis then close(pgmdis)
+rem
+print 'cursor'("ON"),'RM','BE',
+window!.destroy()
+print 'show'
+REM "aqui debe ir GVALIDA
+progra$=pgm1$
+if bui then
+    if pos(".src"=pgm1$) then
+        run pgm1$
+    else
+        resp=msgbox("Este programa no funciona en un navegador",0+16+0,"No funcional en BUI")
+        goto 1
+    endif
+else
+    run pgm1$    
+endif
+rem
+
+noexiste:
+resp=msgbox("El programa asociado a esta opcion no se encuentra disponible",0+48+0,"Opcion no disponible")
+return
+
+
+rem
+rem "pantalla
+rem "========
+pantalla:
+miAPI!=BBjAPI()
+sysgui=200
+close (sysgui)
+open (sysgui)"X0"
+rem
+rem "parametros de ventana
+rem "=====================
+sysgui! = miAPI!.getSysGui()
+x=10
+y=10
+w=600
+h=400
+empresa$=STBL("NOMEMP",err=*next)
+tit$="["+empresa$+"] Selector General de Sistema"
+rem
+rem "establece contexto actual
+rem "=========================
+sysgui!.setContext(0)
+rem
+rem "crea ventana en el contexto
+rem "===========================
+w = 600
+h = 480
+call "RG9999.src::centrar",sysgui!,w,h,20,0,x,y; if bui then y=0
+window!=sysgui!.addWindow(x,y,w,h,tit$,$00080093$)
+color1!=sysgui!.makeColor(51,153,255)
+window!.setBackColor(color1!)
+call "RG9999.src::status_tablas"
+call "RG9999.src::thin_cliente"
+rem 
+rem
+rem "Administrador de Imagenes
+rem "=========================
+imageManager!=sysgui!.getImageManager()
+lista16!=imageManager!.loadImageFromFile("./IMAGES/Lista16.png")
+lista32!=imageManager!.loadImageFromFile("./IMAGES/Lista32.png")
+lista48!=imageManager!.loadImageFromFile("./IMAGES/Salir48.png")
+sysgui!.addImageList(587,48,lista48!)
+sysgui!.addImageList(588,32,lista32!)
+sysgui!.addImageList(589,16,lista16!)
+rem
+rem
+rem "crea barra de menu
+rem "==================
+menubar!=window!.addMenuBar()
+rem *** window!.addImageCtrl(050,0,0,600,480,"./IMAGES/logomenu.jpg")
+salir!=window!.addToolButton(999,500,400,50,50,$$,$0000$)
+salir!.setImage(imageManager!.loadImageFromImageList(587,0))
+salir!.setShortCue("Salir")
+salir!.setLongCue("Salir de la aplicacion")
+rem
+rem "agrega menus a la barra de menu
+rem "===============================
+dim categoria$[1:8],menuxx![1:8]
+categoria$[1]="&Compras"
+categoria$[2]="&Ventas"
+categoria$[3]="&Existencias"
+categoria$[4]="Ca&ncelacion"
+categoria$[5]="&Despacho"
+categoria$[6]="&Sistema"
+categoria$[7]="&Utilitarios"
+categoria$[8]="A&yuda"
+gosub ruta; rem "muestra ruta de los datos
+rem
+for z=1 to 8
+    id1=(z*100)*-1
+    menuxx![z]=menubar!.addMenu(id1,categoria$[z])
+next z
+rem
+rem "compras
+rem "=======
+idgen=1000,itemes=20
+dim sec01$[1:itemes],pgm01$[1:itemes],est01$[1:itemes]
+sec01$[01]="Tablas                       ",pgm01$[01]="sub020304050607"
+sec01$[02]="Proveedores                  ",pgm01$[02]="AD0101"
+sec01$[03]="Marcas de Proveedor y Formato",pgm01$[03]="AD0103"
+sec01$[04]="Centros de Costo             ",pgm01$[04]="AD0501"
+sec01$[05]="Estados de Compra            ",pgm01$[05]="AD0502"
+sec01$[06]="Instituciones                ",pgm01$[06]="AD0503"
+sec01$[07]="Procedencias                 ",pgm01$[07]="AD0504"
+sec01$[08]="Registro de Compras          ",pgm01$[08]="AD0201"
+sec01$[09]="Libro de Compras             ",pgm01$[09]="AD0301"
+sec01$[10]="Productos por Proveedor      ",pgm01$[10]="AD0302"
+sec01$[11]="Reportes                     ",pgm01$[11]="sub12131415"
+sec01$[12]="Libro de Compras             ",pgm01$[12]="AD0404"
+sec01$[13]="Productos por Proveedor      ",pgm01$[13]="AD0401"
+sec01$[14]="Proveedores                  ",pgm01$[14]="AD0402"
+sec01$[15]="Compras por Centro de Costo  ",pgm01$[15]="AD0403"
+sec01$[16]="Importaciones                ",pgm01$[16]="sub1718"
+sec01$[17]="Ingreso de Importaciones     ",pgm01$[17]="AD0202.src"
+sec01$[18]="Consulta de Importaciones    ",pgm01$[18]="AD0303.src"
+sec01$[19]="sep                          ",pgm01$[19]="xxxxxx"
+sec01$[20]="Salir                        ",pgm01$[20]="salida"
+for z=1 to itemes
+    opcion$=cvs(sec01$[z],2)
+    inact=num(est01$[z])
+    if opcion$="sep" then
+        idgen=idgen+1
+        idmenu=idgen*-1
+        menuxx![1].addSeparator()
+    else
+        if pgm01$[z](1,3)="sub" then
+            idgen=idgen+1
+            idmenu=idgen*-1
+            menuxx![1].addMenu(idmenu,opcion$)
+            submenu!=menuxx![1].getMenu(idmenu)
+            if inact then submenu!.setEnabled(miAPI!.FALSE)
+            submenus$=pgm01$[z](4)
+            for subm=1 to len(submenus$) step 2
+                subopcion$=sec01$[num(submenus$(subm,2))]
+                subsubmenu$=pgm01$[num(submenus$(subm,2))]
+                if subsubmenu$(1,3)="sub" then
+                    idgen=idgen+1
+                    idmenu=idgen*-1
+                    subsubmenu!=submenu!.addMenu(idmenu,subopcion$)
+                    subsubmenus$=subsubmenu$(4)
+                    z=z+1
+                    for subsubm=1 to len(subsubmenus$) step 2
+                        idgen=idgen+1
+                        idmenu=idgen*-1; rem *** print sec01$[num(subsubmenus$(subsubm,2))]," ",idmenu," z:",z; input *,
+                        subsubmenu!.addMenuItem(idmenu,sec01$[num(subsubmenus$(subsubm,2))])
+                        inact=num(est01$[num(subsubmenus$(subsubm,2))])
+                        if inact then subsubmenu!.getMenuItem(idmenu).setEnabled(miAPI!.FALSE) endif
+                        z=z+1
+                    next subsubm
+                else
+                    idgen=idgen+1
+                    idmenu=idgen*-1
+                    submenu!.addMenuItem(idmenu,subopcion$)
+                    inact=num(est01$[num(submenus$(subm,2))])
+                    if inact then submenu!.getMenuItem(idmenu).setEnabled(miAPI!.FALSE) endif
+                    z=z+1
+                endif
+                rem
+            next subm
+        else
+            idgen=idgen+1
+            idmenu=idgen*-1
+            menuxx![1].addMenuItem(idmenu,opcion$)
+            if opcion$="Salir" or opcion$="Exit" then
+                menuxx![1].getMenuItem(idmenu).setImage(imageManager!.loadImageFromImageList(589,1))
+            endif
+            if inact then menuxx![1].getMenuItem(idmenu).setEnabled(miAPI!.FALSE) endif
+        endif
+    endif
+next z
+rem
+rem "ventas
+rem "======
+idgen=2000,itemes=34
+dim sec02$[1:itemes],pgm02$[1:itemes],est02$[1:itemes]
+sec02$[01]="Tablas                        ",pgm02$[01]="sub020304050607"
+sec02$[02]="Clientes                      ",pgm02$[02]="VE0101"
+sec02$[03]="Tipos de Clientes             ",pgm02$[03]="VE0106"
+sec02$[04]="Vendedores                    ",pgm02$[04]="VE0102"
+sec02$[05]="Precios por Cliente           ",pgm02$[05]="VE0105"
+sec02$[06]="Precios por Tipo Cliente      ",pgm02$[06]="VE0107"
+sec02$[07]="Precios Tope                  ",pgm02$[07]="VE0104"
+sec02$[08]="Pedidos                       ",pgm02$[08]="sub0910111213"
+sec02$[09]="Ingreso de Pedidos            ",pgm02$[09]="VE0201"
+sec02$[10]="Reporte Productos Acumulados  ",pgm02$[10]="VE0408"
+sec02$[11]="Reporte Detalle de Productos  ",pgm02$[11]="VE0409"
+sec02$[12]="Factura Pedidos Pendientes    ",pgm02$[12]="VE0202"
+sec02$[13]="Consulta Pedidos              ",pgm02$[13]="VE0305"
+sec02$[14]="Factura Manual                ",pgm02$[14]="VE0203"
+sec02$[15]="Guia de Despacho Manual       ",pgm02$[15]="VE0204"
+sec02$[16]="Genera Facturas desde Guias   ",pgm02$[16]="VE0205"
+sec02$[17]="Ingreso Notas de Credito      ",pgm02$[17]="VE0206"
+sec02$[18]="sep                           ",pgm02$[18]="sep"
+sec02$[19]="Retira Pedidos de Frigorifico (en Construccion)",pgm02$[19]="VE0210.src"
+sec02$[20]="sep                           ",pgm02$[20]="sep"
+sec02$[21]="Reportes                      ",pgm02$[21]="sub2223242526272829303132"
+sec02$[22]="Despliegue Libro de Facturas  ",pgm02$[22]="VE0301"
+sec02$[23]="Despliegue Libro de Guias     ",pgm02$[23]="VE0302"
+sec02$[24]="Consulta Notas de Credito     ",pgm02$[24]="VE0304"
+sec02$[25]="Despliegue Ventas por Producto",pgm02$[25]="VE0303"
+sec02$[26]="Ventas por Producto           ",pgm02$[26]="VE0401"
+sec02$[27]="Libro de Facturas             ",pgm02$[27]="VE0402"
+sec02$[28]="Libro de Ventas SII           ",pgm02$[28]="VE0402_SII"
+sec02$[29]="Libro de Guias de Despacho    ",pgm02$[29]="VE0403"
+sec02$[30]="Libro de Notas de Credito     ",pgm02$[30]="VE0407"
+sec02$[31]="Clientes por Vendedor         ",pgm02$[31]="VE0404"
+sec02$[32]="Productos Facturados          ",pgm02$[32]="VE0405"
+sec02$[33]="Ventas Consolidadas           ",pgm02$[33]="VE0406"
+sec02$[34]="Rentabilidad por Camion       ",pgm02$[34]="VE0306.src"
+rem
+for z=1 to itemes
+    idgen=idgen+1
+    idmenu=idgen*-1
+    opcion$=cvs(sec02$[z],2)
+    inact=num(est02$[z])
+    if opcion$="sep" then
+        menuxx![2].addSeparator()
+    else
+        if pgm02$[z](1,3)="sub" then
+            menuxx![2].addMenu(idmenu,opcion$)
+            submenu!=menuxx![2].getMenu(idmenu)
+            if inact then submenu!.setEnabled(miAPI!.FALSE)
+            submenus$=pgm02$[z](4)
+            for subm=1 to len(submenus$) step 2
+                idgen=idgen+1
+                idmenu=idgen*-1
+                submenu!.addMenuItem(idmenu,sec02$[num(submenus$(subm,2))])
+                inact=num(est02$[num(submenus$(subm,2))])
+                if inact then submenu!.getMenuItem(idmenu).setEnabled(miAPI!.FALSE) endif
+                z=z+1
+            next subm
+        else
+            menuxx![2].addMenuItem(idmenu,opcion$)
+        endif
+    endif
+next z
+rem
+rem "existencias
+rem "===========
+idgen=3000,itemes=15
+dim sec03$[1:itemes],pgm03$[1:itemes],est03$[1:itemes]
+sec03$[01]="Tablas                         ",pgm03$[01]="sub0203040506"
+sec03$[02]="Tabla de Mercaderias           ",pgm03$[02]="EX0101"
+sec03$[03]="Tabla de Familias              ",pgm03$[03]="EX0102"
+sec03$[04]="Tabla de Bodegas               ",pgm03$[04]="EX0103"
+sec03$[05]="Tabla de Bodegueros            ",pgm03$[05]="EX0104"
+sec03$[06]="Tabla de Empresas              ",pgm03$[06]="EX0105"
+sec03$[07]="Registro de Ajustes            ",pgm03$[07]="EX0201"
+sec03$[08]="Despliegue Cartola Productos   ",pgm03$[08]="EX0301"
+sec03$[09]="Despliegue de Saldos Actuales  ",pgm03$[09]="EX0302"
+sec03$[10]="Despliegue de Saldos x Camion  ",pgm03$[10]="EX0303"
+sec03$[11]="Mantencion de Costos y Saldos  ",pgm03$[11]="EX0202"
+sec03$[12]="Reporte para Toma de Inventario",pgm03$[12]="EX0401"
+sec03$[13]="Reporte Movimientos Autoventa  ",pgm03$[13]="EX0402"
+sec03$[14]="Entradas y Salidas a Proceso   ",pgm03$[14]="EX0203"
+sec03$[15]="Mantencion de Cajas (Productos)",pgm03$[15]="EX0204.src"
+rem
+for z=1 to itemes
+    idgen=idgen+1
+    idmenu=idgen*-1
+    opcion$=cvs(sec03$[z],2)
+    inact=num(est03$[z])
+    if opcion$="sep" then
+        menuxx![3].addSeparator()
+    else
+        if pgm03$[z](1,3)="sub" then
+            menuxx![3].addMenu(idmenu,opcion$)
+            submenu!=menuxx![3].getMenu(idmenu)
+            if inact then submenu!.setEnabled(miAPI!.FALSE)
+            submenus$=pgm03$[z](4)
+            for subm=1 to len(submenus$) step 2
+                idgen=idgen+1
+                idmenu=idgen*-1
+                submenu!.addMenuItem(idmenu,sec03$[num(submenus$(subm,2))])
+                inact=num(est03$[num(submenus$(subm,2))])
+                if inact then submenu!.getMenuItem(idmenu).setEnabled(miAPI!.FALSE) endif
+                z=z+1
+            next subm
+        else
+            menuxx![3].addMenuItem(idmenu,opcion$)
+        endif
+    endif
+next z
+rem
+rem "cancelacion
+rem "==========
+idgen=4000,itemes=19
+dim sec04$[1:itemes],pgm04$[1:itemes],est04$[1:itemes]
+sec04$[01]="Tablas                         ",pgm04$[01]="sub020304"
+sec04$[02]="Tabla de Formas de Pago        ",pgm04$[02]="CC0101"
+sec04$[03]="Tabla de Bancos                ",pgm04$[03]="CC0102"
+sec04$[04]="Tabla Conceptos Emision Cheques",pgm04$[04]="CC0103"
+sec04$[05]="Ingreso de Cancelaciones       ",pgm04$[05]="CC0201"
+sec04$[06]="Ingreso de Cheques             ",pgm04$[06]="CC0202"
+sec04$[07]="Ingreso Rendicion Diaria       ",pgm04$[07]="CC0203"
+sec04$[08]="Mantencion de Cheques          ",pgm04$[08]="CC0204.CUI"
+sec04$[09]="Deposito de Cheques           ",pgm04$[09]="CC0204.src"
+sec04$[10]="Reportes                       ",pgm04$[10]="sub111213141516171819"
+sec04$[11]="Facturas Impagas               ",pgm04$[11]="CC0401"
+sec04$[12]="Cheques para Deposito          ",pgm04$[12]="CC0403"
+sec04$[13]="Rendicion de Cobranza          ",pgm04$[13]="CC0402"
+sec04$[14]="Pagos Pendientes por Cliente   ",pgm04$[14]="CC0301"
+sec04$[15]="Flujo de Caja                  ",pgm04$[15]="CC0404"
+sec04$[16]="Rendición por Vendedor         ",pgm04$[16]="CC0302"
+sec04$[17]="Rendición por Factura          ",pgm04$[17]="CC0303"
+sec04$[18]="Limite de Credito              ",pgm04$[18]="CC0304.src"
+sec04$[19]="Comision por Cobro             ",pgm04$[19]="CC0305.src"
+REM
+for z=1 to itemes
+    idgen=idgen+1
+    idmenu=idgen*-1
+    opcion$=cvs(sec04$[z],2)
+    inact=num(est04$[z])
+    if opcion$="sep" then
+        menuxx![4].addSeparator()
+    else
+        if pgm04$[z](1,3)="sub" then
+            menuxx![4].addMenu(idmenu,opcion$)
+            submenu!=menuxx![4].getMenu(idmenu)
+            if inact then submenu!.setEnabled(miAPI!.FALSE)
+            submenus$=pgm04$[z](4)
+            for subm=1 to len(submenus$) step 2
+                idgen=idgen+1
+                idmenu=idgen*-1
+                submenu!.addMenuItem(idmenu,sec04$[num(submenus$(subm,2))])
+                inact=num(est04$[num(submenus$(subm,2))])
+                if inact then submenu!.getMenuItem(idmenu).setEnabled(miAPI!.FALSE) endif
+                z=z+1
+            next subm
+        else
+            menuxx![4].addMenuItem(idmenu,opcion$)
+        endif
+    endif
+next z
+rem
+rem "despacho
+rem "========
+idgen=5000,itemes=6
+dim sec05$[1:itemes],pgm05$[1:itemes],est05$[1:itemes]
+sec05$[01]="Tablas                       ",pgm05$[01]="sub020304"
+sec05$[02]="Tabla de Conductores         ",pgm05$[02]="DE0101"
+sec05$[03]="Tabla de Moviles             ",pgm05$[03]="DE0102"
+sec05$[04]="Tabla de Codigos de Anulacion",pgm05$[04]="DE0103"
+sec05$[05]="Ingreso Despacho de Moviles  ",pgm05$[05]="DE0201"
+sec05$[06]="Reporte Hoja de Ruta         ",pgm05$[06]="DE0401"
+REM
+for z=1 to itemes
+    idgen=idgen+1
+    idmenu=idgen*-1
+    opcion$=cvs(sec05$[z],2)
+    inact=num(est05$[z])
+    if opcion$="sep" then
+        menuxx![5].addSeparator()
+    else
+        if pgm05$[z](1,3)="sub" then
+            menuxx![5].addMenu(idmenu,opcion$)
+            submenu!=menuxx![5].getMenu(idmenu)
+            if inact then submenu!.setEnabled(miAPI!.FALSE)
+            submenus$=pgm05$[z](4)
+            for subm=1 to len(submenus$) step 2
+                idgen=idgen+1
+                idmenu=idgen*-1
+                submenu!.addMenuItem(idmenu,sec05$[num(submenus$(subm,2))])
+                inact=num(est05$[num(submenus$(subm,2))])
+                if inact then submenu!.getMenuItem(idmenu).setEnabled(miAPI!.FALSE) endif
+                z=z+1
+            next subm
+        else
+            menuxx![5].addMenuItem(idmenu,opcion$)
+        endif
+    endif
+next z
+
+rem
+rem
+rem "sistema
+rem "=======
+idgen=6000,itemes=12
+dim sec06$[1:itemes],pgm06$[1:itemes],est06$[1:itemes]
+sec06$[01]="Tabla de Empresas               ",pgm06$[01]="SI0101"
+sec06$[02]="Mantencion de Folios            ",pgm06$[02]="SI0202"
+sec06$[03]="Parametros                      ",pgm06$[03]="sub04"
+sec06$[04]="IVA                             ",pgm06$[04]="PA0101"
+sec06$[05]="Accesos                         ",pgm06$[05]="sub06070809"
+sec06$[06]="Tabla de Programas              ",pgm06$[06]="SE0001.src"
+sec06$[07]="Tabla de Perfiles               ",pgm06$[07]="SE0002.src"
+sec06$[08]="Maestro de Usuarios             ",pgm06$[08]="SE0101"
+sec06$[09]="Registro de Privilegios         ",pgm06$[09]="SE0201.src"
+sec06$[10]="Procesos                        ",pgm06$[10]="sub1011"
+sec06$[11]="Generacion de Archivos Mensuales",pgm06$[11]="PR0101"
+sec06$[12]="Generacion Texto con Movimientos",pgm06$[12]="PR0102"
+REM
+for z=1 to itemes
+    idgen=idgen+1
+    idmenu=idgen*-1
+    opcion$=cvs(sec06$[z],2)
+    inact=num(est06$[z])
+    if opcion$="sep" then
+        menuxx![6].addSeparator()
+    else
+        if pgm06$[z](1,3)="sub" then
+            menuxx![6].addMenu(idmenu,opcion$)
+            submenu!=menuxx![6].getMenu(idmenu)
+            if inact then submenu!.setEnabled(miAPI!.FALSE)
+            submenus$=pgm06$[z](4)
+            for subm=1 to len(submenus$) step 2
+                idgen=idgen+1
+                idmenu=idgen*-1
+                submenu!.addMenuItem(idmenu,sec06$[num(submenus$(subm,2))])
+                inact=num(est06$[num(submenus$(subm,2))])
+                if inact then submenu!.getMenuItem(idmenu).setEnabled(miAPI!.FALSE) endif
+                z=z+1
+            next subm
+        else
+            menuxx![6].addMenuItem(idmenu,opcion$)
+        endif
+    endif
+next z
+rem
+
+rem "utilitarios
+rem "===========
+idgen=7000,itemes=3
+dim sec07$[1:itemes],pgm07$[1:itemes],est07$[1:itemes]
+sec07$[01]="Generador de Cartola              ",pgm07$[01]="UT0101"
+sec07$[02]="Generador de Texto con Movimientos",pgm07$[02]="UT0102"
+sec07$[03]="Prueba de Impresion               ",pgm07$[03]="TESTPRN.src"
+REM
+for z=1 to itemes
+    idgen=idgen+1
+    idmenu=idgen*-1
+    opcion$=cvs(sec07$[z],2)
+    inact=num(est07$[z])
+    if opcion$="sep" then
+        menuxx![7].addSeparator()
+    else
+        if pgm07$[z](1,3)="sub" then
+            menuxx![7].addMenu(idmenu,opcion$)
+            submenu!=menuxx![7].getMenu(idmenu)
+            if inact then submenu!.setEnabled(miAPI!.FALSE)
+            submenus$=pgm07$[z](4)
+            for subm=1 to len(submenus$) step 2
+                idgen=idgen+1
+                idmenu=idgen*-1
+                submenu!.addMenuItem(idmenu,sec07$[num(submenus$(subm,2))])
+                inact=num(est07$[num(submenus$(subm,2))])
+                if inact then submenu!.getMenuItem(idmenu).setEnabled(miAPI!.FALSE) endif
+                z=z+1
+            next subm
+        else
+            menuxx![7].addMenuItem(idmenu,opcion$)
+            if opcion$="Ayuda" then
+                menuxx![7].getMenuItem(idmenu).setImage(help!,err=*next)
+            endif
+        endif
+    endif
+next z
+rem
+rem "ayuda
+rem "=====
+idgen=8000,itemes=2
+dim sec08$[1:itemes],pgm08$[1:itemes],est08$[1:itemes]
+sec08$[01]="Ayuda                         ",pgm08$[01]="Ayuda"
+sec08$[02]="Acerca de C&C Systems v.2.0   ",pgm08$[02]="AcercaDe"
+for z=1 to itemes
+    idgen=idgen+1
+    idmenu=idgen*-1
+    opcion$=cvs(sec08$[z],2)
+    inact=num(est08$[z])
+    if opcion$="sep" then
+        menuxx![8].addSeparator()
+    else
+        if pgm08$[z](1,3)="sub" then
+            menuxx![8].addMenu(idmenu,opcion$)
+            submenu!=menuxx![8].getMenu(idmenu)
+            if inact then submenu!.setEnabled(miAPI!.FALSE)
+            submenus$=pgm08$[z](4)
+            for subm=1 to len(submenus$) step 2
+                idgen=idgen+1
+                idmenu=idgen*-1
+                submenu!.addMenuItem(idmenu,sec08$[num(submenus$(subm,2))])
+                if inact then submenu!.getMenuItem(idmenu).setEnabled(miAPI!.FALSE) endif
+                z=z+1
+            next subm
+        else
+            menuxx![8].addMenuItem(idmenu,opcion$)
+            if opcion$="Ayuda" then
+                menuxx![8].getMenuItem(idmenu).setImage(imageManager!.loadImageFromImageList(589,4))
+            endif
+        endif
+    endif
+next z
+rem
+rem "muestra form
+rem "============
+form_muestra:
+window!.setVisible(miAPI!.TRUE)
+rem
+return
+rem
+
+
+ruta:
+rutadb$=stbl("RUTADB",err=*return)
+estado!=window!.getControl(600)
+estado!.setTextAt(2,rutadb$)
+return
+rem
